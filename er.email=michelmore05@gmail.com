@@ -1,0 +1,11 @@
+gui.recentrepo=C:/Users/miche/Desktop/primerProyecto en JS
+user.name=Michelle Moreno
+user.mail=michelmore05@gmail.com
+user.email=michelmore05@gmail.com
+user.password=elreisin123
+filter.lfs.clean=git-lfs clean -- %f
+filter.lfs.smudge=git-lfs smudge -- %f
+filter.lfs.process=git-lfs filter-process
+filter.lfs.required=true
+push.autosetupremote=true
+credential.helper=store
