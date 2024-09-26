@@ -11,6 +11,13 @@ import Login from "./firebase/auth";
 import { ReactNode, useEffect, useState } from "react";
 import UserList from "./Componentes-web/user_list/user_list.tsx";
 import UserProfile from "./Componentes-web/userProfile/userProfile.tsx";
+import Chat from "./Componentes-web/chatComponents/chat.tsx";
+import VideoCall from "./Componentes-web/videoCall/videoCall.tsx";
+import SendbirdChat from "./Componentes-web/chatComponents/sendBirdChat/sendBirdChat.tsx";
+import ChatEngine from "./Componentes-web/chatComponents/chatEngine/chatEngine.tsx";
+import HomePage from "./Componentes-web/home/home.tsx";
+
+
 
 
 interface PrivateRouteProps {
@@ -46,12 +53,14 @@ const PrivateRoute = ({ usuario, children }: PrivateRouteProps) => {
 const auth = getAuth(appFirebase);
 
 const App = () => {
+
+  
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/usersList" element={
+        <Route path="/comunidad" element={
           <PrivateRoute usuario={auth.currentUser}>
           <UserList />
         </PrivateRoute>  
@@ -63,7 +72,7 @@ const App = () => {
           path="/userProfile/:uid"
           element={
             <PrivateRoute usuario={auth.currentUser}>
-              <UserProfile />
+              <UserProfile  />
             </PrivateRoute>
           }
         />
@@ -75,6 +84,57 @@ const App = () => {
             
           }
         />
+              <Route
+          path='/chats'
+          element={
+            <PrivateRoute usuario={auth.currentUser}>
+              <Chat />
+            </PrivateRoute>
+          }
+        />
+         <Route
+          path='/chats/:chatId'
+          element={
+            <PrivateRoute usuario={auth.currentUser}>
+              <Chat />
+            </PrivateRoute>
+          }
+        />
+               
+        <Route
+          path='/videoChat'
+          element={
+            <PrivateRoute usuario={auth.currentUser}>
+              < VideoCall />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path='/sendBirdChat'
+          element={
+            <PrivateRoute usuario={auth.currentUser}>
+              < SendbirdChat />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path='/sendBirdChat/:userId'
+          element={
+            <PrivateRoute usuario={auth.currentUser}>
+              < SendbirdChat />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path='/chatEngine'
+          element={
+            <PrivateRoute usuario={auth.currentUser}>
+              < ChatEngine />
+            </PrivateRoute>
+          }
+        />
+      
+        
       </Routes>
     </Router>
   );

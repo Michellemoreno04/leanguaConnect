@@ -2,20 +2,22 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAbq8VX80Ky5knqxDkpcpt0rCkjKmkHzWQ",
-  authDomain: "videocall-811cb.firebaseapp.com",
-  projectId: "videocall-811cb",
-  storageBucket: "videocall-811cb.appspot.com",
-  messagingSenderId: "594494177446",
-  appId: "1:594494177446:web:aeb82d1574bba42f8d7467"
+  apiKey: import.meta.env.VITE_API_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_API_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_API_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_API_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_API_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_API_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
 const appFirebase = initializeApp(firebaseConfig);
 const auth = getAuth(appFirebase);
 const db = getFirestore(appFirebase);
+const storage = getStorage(appFirebase);
 
-export { appFirebase, auth,db };
+
+export { appFirebase, auth,db,storage };

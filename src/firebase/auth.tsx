@@ -1,63 +1,109 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './auth.css';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,signOut,
     signInWithPopup,
-    GoogleAuthProvider
+    GoogleAuthProvider,
+    onAuthStateChanged
  } from 'firebase/auth';
-import { appFirebase } from './firebase'
-import { Link,useNavigate} from 'react-router-dom';
-import { doc, setDoc } from 'firebase/firestore';
+import { Link,} from 'react-router-dom';
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
+import {auth} from './firebase'
+import {useNavigate} from 'react-router-dom'
 
 
-const auth = getAuth(appFirebase);
 
 
 
 const Login = () => {
+  const navigate = useNavigate();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [registrado, setRegistrado] = useState(false);
+  const [country, setCountry] = useState("");//estado de la ubicación
 
-  const signIn = async (e: any) => {
-    e.preventDefault();
-    // Aquí puedes manejar la autenticación
-    if (registrado) {
+// Obtener la ubicación del usuario con la API ip-api
+  useEffect(() => {
+    const getCountry = async () => {
       try {
-      // Registrar nuevo usuario
-     const  userCredential = await createUserWithEmailAndPassword(auth, email, password)
-       // Guardar la información del nuevo usuario en Firestore
-       await setDoc(doc(db, "users", userCredential.user.uid), {
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-        displayName: userCredential.user.displayName || email, // Puedes usar el email como nombre si no tienes un nombre
-        photoURL: userCredential.user.photoURL || '', // Dejar vacío si no hay foto
-      });
+        const response = await fetch('http://ip-api.com/json/');// aqui es donde se obtiene la información de la ubicación
+        const data = await response.json();
+        setCountry(data.country);
+    
       } catch (error) {
-        alert('asegurese de que la contraseña contenga al menos 6 caracteres');
+        console.error("Error fetching country:", error);
       }
-       
-    } else {
-      try {
-        //aqui se inicia sesion
-   const  userCredential =  await signInWithEmailAndPassword(auth, email, password)
-
-         // (Opcional) Si deseas actualizar la información del usuario en Firestore al iniciar sesión, puedes hacerlo aquí
-        await setDoc(doc(db, "users", userCredential.user.uid), {
-          email: userCredential.user.email,
-          lastLogin: new Date(), // Puedes agregar más campos si es necesario
-        }, { merge: true }); // El { merge: true } asegura que no se sobrescriba la información existente
-
-       
-      } catch (error) {
-        alert('Credenciales incorrectas');
-      }
-       
-    }
-  }
+    };
+// aqui vamos a guardarlo en firebase database
 
  
+getCountry();
+}, []);
+
+
+
+// Aquí puedes manejar la autenticación
+const signIn = async (e: any) => {
+  e.preventDefault();
+
+  if (registrado) {
+    try {
+      // Registrar nuevo usuario
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      // Guardar la información del nuevo usuario en Firestore
+      await setDoc(
+        doc(db, 'users', userCredential.user.uid),
+        {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          displayName: userCredential.user.displayName || 'usuario', // Nombre predeterminado si no hay
+          photoURL: userCredential.user.photoURL || '', // Dejar vacío si no hay foto
+          lastLogin: new Date(), // Fecha del último inicio de sesión
+          country: country,
+          firstLogin: true, // Indicar que es la primera vez que se inicia sesión
+        },
+        { merge: true } // No sobrescribir la información existente
+      );
+
+      // Redirigir al perfil del usuario
+      navigate(`/profile/${userCredential.user.uid}`);    } catch (error) {
+      console.log(error);
+      alert(error);
+    }
+  } else {
+    try {
+      // Iniciar sesión del usuario
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+// Verificar si el usuario ya tiene un documento en Firestore
+const userDocRef = doc(db, "users", userCredential.user.uid);
+const userDoc = await getDoc(userDocRef);
+
+      const firstLogin = !userDoc.exists() || userDoc.data()?.firstLogin !== false;
+
+      // (Opcional) Actualizar la información del usuario en Firestore al iniciar sesión
+      await setDoc(
+        doc(db, 'users', userCredential.user.uid),
+        {
+          email: userCredential.user.email,
+          lastLogin: firstLogin,
+          country: country,
+        },
+        { merge: true }
+      );
+
+      // Redirigir al perfil del usuario
+      navigate(`/profile/${userCredential.user.uid}`);
+    } catch (error) {
+      alert('Credenciales incorrectas');
+    }
+  }
+};
+
+
+
   return (
     <div className='login-page'>
     <div className="login-container">
@@ -125,26 +171,45 @@ window.location.href = "/login";}
 };
   
 // sign in with google
-  export const googleSignIn = async (e:any) => {
-    e.preventDefault();
+export const googleSignIn = async (e: any) => {
+  e.preventDefault();
 
-    const provider = new GoogleAuthProvider();
+  const provider = new GoogleAuthProvider();
 
-    await signInWithPopup(auth, provider)
-    .then(async (result) => {
-      const user = result.user;
-      // Guardar la información del usuario en Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-      });
-      window.location.href = "/usersList";
-    })
-    .catch((error) => {
-      console.error(error);
-    });
-    
-}
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // Obtener el país del usuario utilizando la API ip-api
+    const countryResponse = await fetch("http://ip-api.com/json/");
+    const countryData = await countryResponse.json();
+    const userCountry = countryData.country;
+
+    // Verificar si el usuario ya tiene un documento en Firestore
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    // Si el documento no existe o el campo firstLogin es true, establece firstLogin en true
+    const firstLogin = !userDoc.exists() || userDoc.data()?.firstLogin !== false;
+
+    // Guardar la información del usuario en Firestore
+    await setDoc(userDocRef, {
+      uid: user.uid,
+      displayName: user.displayName,
+      email: user.email,
+      photoURL: user.photoURL,
+      country: userCountry,
+      createdAt: userDoc.exists() ? userDoc.data()?.createdAt : Timestamp.now(), // Mantener la fecha original si ya existe
+      firstLogin: firstLogin, // Solo establecer true si es la primera vez
+    }, { merge: true });
+
+    console.log("Usuario autenticado:", user);
+
+    // Redirigir a la página de comunidad
+    window.location.href = `/profile/${user.uid}`;
+  } catch (error) {
+    console.error("Error en el inicio de sesión:", error);
+  }
+};
+
 export default Login;
